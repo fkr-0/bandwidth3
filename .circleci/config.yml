@@ -1,0 +1,91 @@
+version: 2.1
+
+# orbs section removed because docker orb was unused
+
+jobs:
+  test:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Install build dependencies
+          command: |
+            sudo apt-get update && sudo apt-get install -y gcc make help2man
+      - run:
+          name: Run tests
+          command: make test
+
+  build:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Install build dependencies
+          command: |
+            sudo apt-get update && sudo apt-get install -y gcc make help2man
+      - run:
+          name: Build release binary
+          command: make release
+      - run:
+          name: Create distribution archive
+          command: make dist
+      - store_artifacts:
+          path: dist
+          destination: bandwidth3-dist
+
+  release:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Install build dependencies
+          command: |
+            sudo apt-get update && sudo apt-get install -y gcc make help2man git # git is needed for commit hash
+      - run:
+          name: Build and create distribution archive
+          command: |
+            make release
+            make dist
+      - store_artifacts: # Optional: store artifacts for the release job as well
+          path: dist
+          destination: bandwidth3-release-dist
+      # Add steps here to upload the dist/bandwidth3-*.tar.gz to your release hosting (e.g., GitHub Releases)
+      # Example for GitHub Releases (requires gh CLI and GITHUB_TOKEN env var):
+      # - run:
+      #     name: Upload to GitHub Releases
+      #     command: |
+      #       if [ -n "$CIRCLE_TAG" ]; then
+      #         gh release upload "$CIRCLE_TAG" dist/bandwidth3-*.tar.gz --clobber
+      #       else
+      #         echo "Not a tagged commit, skipping GitHub release."
+      #       fi
+
+workflows:
+  version: 2
+  test-build-release:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /.*/ # Run on all tags
+            branches:
+              only: /.*/ # Run on all branches
+      - build:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /.*/ # Run on all tags
+            branches:
+              only: /.*/ # Run on all branches
+      - release:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/ # Only run on version tags (e.g., v0.1.3, v1.0)
+            branches:
+              ignore: /.*/ # Do not run on branches for the release job

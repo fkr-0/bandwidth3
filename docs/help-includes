@@ -1,0 +1,16 @@
+[EXAMPLES]
+    bandwidth3 -i wlp3s0,wlan0,eth0,enp0s13f0u1u3,enp0s25
+[POLYBAR]
+    [module/bandwidth]
+    type  = custom/script
+    exec  = env \
+            WARN_RX=307200 WARN_TX=30720 \
+            CRIT_RX=512000 CRIT_TX=51200  \
+            INTERFACES=wlp0s0,enp3s0      \
+            /path/to/bandwidth3 -t 1 -B
+
+    # keep process alive to avoid respawn every second
+    tail = true
+    format-padding = 1
+[AUTHOR]
+    cbadger. https://github.com/fkr-0/bandwidth3
