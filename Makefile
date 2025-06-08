@@ -11,7 +11,7 @@
 
 # -------- Project metadata ---------------------------
 TARGET   ?= bandwidth3
-VERSION  ?= 0.1.5
+VERSION  ?= 0.1.6
 PREFIX   ?= /usr/local        # honourable default; may be overridden
 
 BUILD_DIR := build

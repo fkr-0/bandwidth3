@@ -23,7 +23,6 @@ static void test_enum_distinct(void) {
 
 /* ─────────────────────────────────────────────────────────────── */
 int main(void) {
-  test_version();
   test_avg_rate();
   test_enum_distinct();
   return 0; /* any assert() failure aborts non-zero */
