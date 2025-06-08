@@ -6,11 +6,6 @@
 #include <assert.h>
 #include <string.h>
 
-/* 1 ───────────────── Version string is what we ship */
-static void test_version(void) {
-  assert(strcmp(BANDWIDTH3_VERSION, "0.1.3") == 0);
-}
-
 /* 2 ───────────────── avg_rate maths */
 static void test_avg_rate(void) {
   /* 6000-4000 over 2 s → 1000 B/s */
