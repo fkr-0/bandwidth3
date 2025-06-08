@@ -109,7 +109,7 @@ void human_print(double bps, char unit, unsigned divisor, uint64_t warn,
     bps /= divisor;
     ++i;
   }
-  printf("%6.1f %s%s", bps, prefix[i], suffix);
+  printf("%7.1f %s%s", bps, prefix[i], suffix);
 }
 /* --------------------------------------------------------------------- */
 bool read_iface_stats(const char *ifname, NetStats *out) {

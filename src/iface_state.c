@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h> // Added for ioctl
+#include <unistd.h>    // Added for close
+#include <sys/socket.h> // Added for socket function and AF_INET, SOCK_DGRAM
+#include <netinet/in.h> // Added for struct sockaddr_in, not strictly needed for SIOCGIWESSID but good practice for socket programming
+#include <linux/if.h> // Added for IFNAMSIZ and struct ifreq (though iwreq is used from wireless.h)
 
 /* --------------------------------------------------------------------- */
 /* Wi-Fi test: directory /sys/class/net/<iface>/wireless exists          */
@@ -55,13 +60,28 @@ void get_wifi_ssid(const char *ifname, char *ssid_buf) {
 
   struct iwreq wreq;
   memset(&wreq, 0, sizeof(struct iwreq));
-  strncpy(wreq.ifr_name, ifname, IFNAMSIZ -1);
+  strncpy(wreq.ifr_name, ifname, IFNAMSIZ - 1);
+
+  char essid_buffer[IW_ESSID_MAX_SIZE + 1]; // Buffer to store the ESSID
+  wreq.u.essid.pointer = essid_buffer;
+  wreq.u.essid.length = IW_ESSID_MAX_SIZE + 1;
+  // wreq.u.essid.flags = 0; // Not strictly necessary for SIOCGIWESSID but good practice
 
   if (ioctl(sockfd, SIOCGIWESSID, &wreq) == 0) {
-    strncpy(ssid_buf, wreq.u.essid.pointer, IW_ESSID_MAX_SIZE);
-    ssid_buf[IW_ESSID_MAX_SIZE] = '\0'; // Ensure null termination
+    // Check if an ESSID was actually returned (length > 0)
+    // The kernel sets wreq.u.essid.length to the actual length of the SSID
+    if (wreq.u.essid.length > 0) {
+        // Ensure null termination based on actual length returned by kernel
+        // or max buffer size, whichever is smaller.
+        size_t actual_len = (wreq.u.essid.length < IW_ESSID_MAX_SIZE) ? wreq.u.essid.length : IW_ESSID_MAX_SIZE;
+        memcpy(ssid_buf, essid_buffer, actual_len); // Changed from strncpy
+        ssid_buf[actual_len] = '\0';
+    } else {
+        ssid_buf[0] = '\0'; // No SSID or empty SSID
+    }
   } else {
-    // perror("ioctl SIOCGIWESSID"); // Optional: print error if ioctl fails
+    // perror("ioctl SIOCGIWESSID"); // Keep this commented for now unless further debugging is needed
+    ssid_buf[0] = '\0'; // Ensure ssid_buf is empty on error
   }
   close(sockfd);
 }

@@ -4,13 +4,13 @@
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
 
-#include <linux/if.h> /* IFNAMSIZ */
+#include <linux/if.h>       /* IFNAMSIZ */
 #include <linux/wireless.h> // Added for IW_ESSID_MAX_SIZE
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAX_IFACES 32    // maximum number of interfaces for parsing
+#define MAX_IFACES 32 // maximum number of interfaces for parsing
 
 /* ---------- Generic per-interface counters --------------------------- */
 typedef struct {

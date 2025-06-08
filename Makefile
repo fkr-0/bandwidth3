@@ -11,7 +11,7 @@
 
 # -------- Project metadata ---------------------------
 TARGET   ?= bandwidth3
-VERSION  ?= 0.1.3
+VERSION  ?= 0.1.4
 PREFIX   ?= /usr/local        # honourable default; may be overridden
 
 BUILD_DIR := build
@@ -58,7 +58,7 @@ $(BUILD_DIR)/test_basic: $(TEST_SRC) | $(BUILD_DIR)
 	$(CC) $(INCLUDES) $(CFLAGS_common) -g -O0 $^ -o $@
 
 # -------- Documentation (man page) -------------------
-docs: docs/$(TARGET).1
+# docs: docs/$(TARGET).1
 
 # help2man produces nice roff; fallback to existing stub if tool absent
 DOC_TMP := $(BUILD_DIR)/$(TARGET)_help.txt
@@ -73,24 +73,40 @@ docs/$(TARGET).1: $(BUILD_DIR)/$(TARGET)
 		echo "help2man not found – using stub" ; \
 		[ -f $@ ] || cp docs/stub.1 $@ ; \
 	fi
-
 # -------- Install / uninstall ------------------------
-# Detect root privileges; if non‑root AND PREFIX left at default, install to ~/.local
-INSTALL_PREFIX := $(shell [ "$(PREFIX)" = "/usr/local" ] && [ $$(id -u) -ne 0 ] && echo "$(HOME)/.local" || echo "$(PREFIX)")
-BINDIR := $(INSTALL_PREFIX)/bin
-MANDIR := $(INSTALL_PREFIX)/share/man/man1
+#
+# Rules:
+#   • If the caller leaves PREFIX at its default (/usr/local)
+#     *and* is *not* root → install privately to $HOME/.local
+#   • Otherwise honour the given PREFIX verbatim.
+#
+# ifeq ($(PREFIX),/usr/local)
+
+ifneq ($(shell id -u),0)           # UID ≠ 0  → not root
+    INSTALL_PREFIX := $(HOME)/.local
+else                               # running as root
+    INSTALL_PREFIX := $(PREFIX)
+endif
+
+# else                                  # custom PREFIX supplied
+# INSTALL_PREFIX := $(PREFIX)
+# endif
+
+BINDIR  := $(INSTALL_PREFIX)/bin
+MANDIR  := $(INSTALL_PREFIX)/share/man/man1
 
 install: $(BUILD_DIR)/$(TARGET) docs/$(TARGET).1
-	@echo "Installing to $(INSTALL_PREFIX)" ; \
-	install -d $(BINDIR) $(MANDIR) ; \
-	install -m 755 $(BUILD_DIR)/$(TARGET) $(BINDIR)/$(TARGET) ; \
-	install -m 644 docs/$(TARGET).1 $(MANDIR)/$(TARGET).1 ; \
-	echo "Done."
+	@echo "Installing to $(INSTALL_PREFIX)"
+	@install -d "$(BINDIR)" "$(MANDIR)"
+	@install -m 755 "$(BUILD_DIR)/$(TARGET)" "$(BINDIR)/$(TARGET)"
+	@install -m 644 "docs/$(TARGET).1" "$(MANDIR)/$(TARGET).1"
+	@echo "Done."
 
 uninstall:
-	@echo "Removing $(INSTALL_PREFIX)/bin/$(TARGET)" ; \\
-	rm -f $(BINDIR)/$(TARGET) ; \\
-	rm -f $(MANDIR)/$(TARGET).1
+	@echo "Removing $(BINDIR)/$(TARGET)"
+	@rm -f "$(BINDIR)/$(TARGET)"
+	@rm -f "$(MANDIR)/$(TARGET).1"
+
 
 # -------- Release archive ----------------------------
 ARCHIVE_NAME := bandwidth3-$(VERSION)-$(COMMIT_HASH_STUB).tar.gz

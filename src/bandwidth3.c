@@ -155,11 +155,12 @@ static bool print_eth(Iface *n, double rx, double tx,
                       uint64_t crit_rx, uint64_t crit_tx) {
     if (n->state != IFSTATE_CONNECTED)
         return false;
-    // print connected rates
-    printf("%s ", state_icon(n->wifi, n->state));
+
+    printf("[ %s | ", state_icon(n->wifi, n->state));
     human_print(rx, unit, divisor, warn_rx, crit_rx);
-    printf(" ");
+    printf(" ");
     human_print(tx, unit, divisor, warn_tx, crit_tx);
+    printf(" ]");
     return true;
 }
 
@@ -170,23 +171,22 @@ static bool print_wifi(Iface *n, double rx, double tx,
                        uint64_t crit_rx, uint64_t crit_tx) {
     if (n->state == IFSTATE_DISABLED)
         return false;
-    // always show status icon
-    printf("%s ", state_icon(n->wifi, n->state));
+
+    printf("[ %s", state_icon(n->wifi, n->state));
     if (n->state == IFSTATE_CONNECTED) {
-        if (n->ssid[0] != '\0') { // Check if SSID is available
-            printf("%s ", n->ssid);
+        if (n->ssid[0] != '\0') {
+            printf(" %s", n->ssid);
         }
-        printf("");
+        printf(" | ");
         human_print(rx, unit, divisor, warn_rx, crit_rx);
-        printf(" ");
+        printf(" ");
         human_print(tx, unit, divisor, warn_tx, crit_tx);
     } else if (n->state == IFSTATE_DISCONNECTED) {
-        // show disconnected state
-        printf("[no-link]");
-    } else {
-        // other errors
-        printf("[err]");
+        printf(" | [no-link]");
+    } else { // IFSTATE_ERR or other
+        printf(" | [err]");
     }
+    printf(" ]");
     return true;
 }
 
@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
   /* ---------- Main loop ----------------------------------------- */
   while (g_run) {
     sleep(refresh);
-    bool first = true;
+    bool first_printed_interface = true;
     for (size_t i = 0; i < n_ifaces; ++i) {
       Iface *n = &ifs[i];
       n->state = get_iface_state(n->name, n->wifi);
@@ -308,15 +308,20 @@ int main(int argc, char *argv[]) {
       double tx = avg_rate(cur.tx_bytes, n->prev.tx_bytes, refresh);
       n->prev = cur;
 
-      bool printed = n->wifi
+      bool printed_this_interface = n->wifi
           ? print_wifi(n, rx, tx, unit, divisor, warn_rx, warn_tx, crit_rx, crit_tx)
           : print_eth(n, rx, tx, unit, divisor, warn_rx, warn_tx, crit_rx, crit_tx);
-      if (printed) {
-        if (!first) putchar(' ');
-        first = false;
+
+      if (printed_this_interface) {
+        if (!first_printed_interface) {
+          printf(" | "); // Separator between interface groups
+        }
+        first_printed_interface = false;
       }
     }
-    putchar('\n');
+    if (!first_printed_interface) { // Only print newline if something was printed
+        putchar('\n');
+    }
     fflush(stdout);
   }
 
